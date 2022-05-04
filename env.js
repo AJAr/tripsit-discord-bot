@@ -12,6 +12,7 @@ exports.IRC_SERVER = process.env.IRC_SERVER;
 exports.IRC_USERNAME = process.env.IRC_USERNAME;
 exports.IRC_PASSWORD = process.env.IRC_PASSWORD;
 
+exports.FIREBASE_URL = process.env.FIREBASE_URL;
 exports.FIREBASE_PRIVATE_KEY_ID = process.env.FIREBASE_PRIVATE_KEY_ID;
 exports.FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY;
 exports.FIREBASE_CLIENT_ID = process.env.FIREBASE_CLIENT_ID;
