@@ -1,8 +1,10 @@
 'use strict';
 
 require('dotenv').config();
+const path = require('path');
 
 exports.NODE_ENV = process.env.NODE_ENV;
+exports.LOG_PATH = path.resolve(process.env.LOG_PATH);
 
 exports.DISCORD_CLIENT_ID = process.env.clientId;
 exports.DISCORD_TOKEN = process.env.token;

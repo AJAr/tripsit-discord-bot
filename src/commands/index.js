@@ -5,7 +5,7 @@ const fs = require('fs/promises');
 const { Collection } = require('discord.js');
 
 module.exports = async function registerCommands(client) {
-  client.commands = new Collection(); // eslint-disable-line
+  Object.assign(client, { commands: new Collection() });
 
   async function registerType(commandType) {
     const files = await fs.readdir(path.join(__dirname, commandType));

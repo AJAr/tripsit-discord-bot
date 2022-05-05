@@ -6,7 +6,7 @@ const { Client, Collection, Intents } = require('discord.js');
 const PREFIX = require('path').parse(__filename).name;
 const { initializeApp, cert } = require('firebase-admin/app'); // eslint-disable-line
 const { getFirestore } = require('firebase-admin/firestore'); // eslint-disable-line
-const logger = require('./utils/logger');
+const createLogger = require('./logger');
 const registerCommands = require('./commands');
 const registerEvents = require('./events');
 const serviceAccount = require('./assets/firebase_creds.json');
@@ -20,6 +20,8 @@ const {
   FIREBASE_CLIENT_ID,
   FIREBASE_CLIENT_EMAIL,
 } = require('../env');
+
+const logger = createLogger();
 
 serviceAccount.private_key_id = FIREBASE_PRIVATE_KEY_ID;
 serviceAccount.private_key = FIREBASE_PRIVATE_KEY ? FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined;
@@ -64,6 +66,7 @@ const client = new Client({
 // Initialize this for later
 client.invites = new Collection();
 
-Promise.all([registerCommands(client), registerEvents(client)])
+const deps = { logger };
+Promise.all([registerCommands(client, deps), registerEvents(client, deps)])
   .then(() => client.login(DISCORD_TOKEN))
   .then(() => logger.info(`[${PREFIX}] Discord bot successfully started...`));

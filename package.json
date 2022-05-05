@@ -1,7 +1,7 @@
 {
   "name": "@tripsit/discord-bot",
   "private": true,
-  "version": "1.2.18",
+  "version": "1.2.20",
   "description": "A bot for TripSit",
   "main": "index.js",
   "scripts": {
@@ -60,6 +60,8 @@
     "eslint": "^8.14.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-jest": "^26.1.5",
+    "jest": "^28.0.3",
     "nodemon": "^2.0.16"
   },
   "engines": {

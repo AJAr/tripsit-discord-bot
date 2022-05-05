@@ -2,42 +2,32 @@
 
 // TODO: Syncronous fs operations
 
-const fs = require('fs');
-const PREFIX = require('path').parse(__filename).name;
+const path = require('path');
 const Fuse = require('fuse.js');
 const _ = require('underscore'); // TODO: underscore.js
-const logger = require('../utils/logger');
 const template = require('../utils/embed-template');
+const drugDataAll = require('../assets/drug_db_combined.json');
+const drugDataTripsit = require('../assets/drug_db_tripsit.json');
+const timezones = require('../assets/timezones.json');
+const pillColors = require('../assets/pill_colors.json');
+const pillShapes = require('../assets/pill_shapes.json');
 
-const { ownerId } = process.env;
-const { guildId } = process.env;
-const channelModeratorsId = process.env.channel_moderators;
+const PREFIX = path.parse(__filename).name;
 
-const drugDataAll = JSON.parse(fs.readFileSync('./src/assets/drug_db_combined.json'));
+const {
+  ownerId,
+  guildId,
+  channel_moderators: channelModeratorsId,
+} = process.env;
+
 const drugNames = drugDataAll.map(d => d.name);
-const drugDataTripsit = JSON.parse(fs.readFileSync('./src/assets/drug_db_tripsit.json'));
+const timezoneNames = timezones.map(tz => tz.label);
 
-const timezones = JSON.parse(fs.readFileSync('./src/assets/timezones.json'));
-const timezoneNames = [];
-for (let i = 0; i < timezones.length; i += 1) {
-  timezoneNames.push(timezones[i].label);
-}
-
-const pillColors = JSON.parse(fs.readFileSync('./src/assets/pill_colors.json'));
-const pillColorNames = [];
-for (let i = 0; i < pillColors.length; i += 1) {
-  pillColorNames.push(Object.keys(pillColors[i])[0]);
-}
+const pillColorNames = pillColors.map(color => Object.keys(color).at(0));
 const defaultColors = pillColorNames.slice(0, 25);
-// logger.debug(`[${PREFIX}] pill_color_names: ${pill_color_names}`);
 
-const pillShapes = JSON.parse(fs.readFileSync('./src/assets/pill_shapes.json'));
-const pillShapeNames = [];
-for (let i = 0; i < pillShapes.length; i += 1) {
-  pillShapeNames.push(Object.keys(pillShapes[i])[0]);
-}
+const pillShapeNames = pillShapes.map(shape => Object.keys(shape).at(0));
 const defaultShapes = pillShapeNames.slice(0, 25);
-// logger.debug(`[${PREFIX}] pill_shape_names: ${pill_shape_names}`);
 
 // The following code came from the benzo_convert tool in the github
 const drugCache = drugDataTripsit;
@@ -72,7 +62,7 @@ const defaultBenzoNames = benzoDrugNames.slice(0, 25);
 module.exports = {
   name: 'interactionCreate',
 
-  async execute(interaction, client) { // eslint-disable-line
+  async execute(interaction, client, { logger }) {
     // print what the user typed in the interaction
     // const username = `${interaction.user.username}#${interaction.user.discriminator}`;
     // const command_name = `${interaction.commandName ? ` used ${interaction.commandName}` : ''}`;

@@ -15,8 +15,8 @@ module.exports = {
 
   async execute(interaction) {
     // Pick a random topic from topics.json
-    const randomTopic = topics[Math.floor(Math.random() * Object.keys(topics).length).toString()];
-    logger.debug(`[${PREFIX}] random_topic: ${randomTopic}`);
+    const randomTopic = topics[Math.floor(Math.random() * Object.keys(topics).length)];
+    logger.debug(`[${PREFIX}] randomTopic:`, randomTopic);
     const embed = template.embedTemplate().setDescription(randomTopic);
     if (!interaction.replied) {
       interaction.reply({

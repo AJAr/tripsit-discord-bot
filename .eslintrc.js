@@ -12,4 +12,17 @@ module.exports = {
     'arrow-parens': [2, 'as-needed'],
     'consistent-return': 0,
   },
+  overrides: [
+    {
+      files: [
+        '**/__tests__/*.js',
+        '**/__mocks__/*.js',
+        'jest.setup.js',
+      ],
+      plugins: ['jest'],
+      env: {
+        'jest/globals': true,
+      },
+    },
+  ],
 };
