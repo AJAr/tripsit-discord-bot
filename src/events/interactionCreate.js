@@ -80,12 +80,11 @@ module.exports = {
         // const message = `${interaction.message ? ` saying: ${interaction.message}` : ''}`;
         // const type = interaction.type;
         // const is_autocomplete = interaction.isAutocomplete();
-        const user_is_bot = interaction.user.bot;
-        // const user_is_blacklisted = blacklist_users.includes(interaction.user.id);
 
         // logger.info(`[${PREFIX}] ${username}${command_name} (${type})${guild_message}${message}`);
 
         // check if the user is a bot and if so, ignore it
+        const user_is_bot = interaction.user.bot;
         if (user_is_bot) {return logger.debug(`[${PREFIX}] Ignoring bot interaction`);}
 
         // check if the interaction is a request for autocomplete

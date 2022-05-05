@@ -90,6 +90,7 @@ const global_commands = [];
 const global_files = fs.readdirSync('./src/commands/global').filter(file => file.endsWith('.js'));
 for (const file of global_files) {
     const command = require(`../src/commands/global/${file}`);
+    client.commands.set(command.data.name, command);
     global_commands.push(command.data.toJSON());
     logger.debug(`[${PREFIX}] ${command.data.name} added GLOBALLY`);
 }
