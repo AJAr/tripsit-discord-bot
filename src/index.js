@@ -3,15 +3,20 @@ if (process.env.NODE_ENV !== 'production') require('dotenv').config();
 // TODO: Look into not including this in the main process
 const { Client, Collection, Intents } = require('discord.js');
 const PREFIX = require('path').parse(__filename).name;
+const { Routes } = require('discord-api-types/v9');
 const logger = require('./utils/logger.js');
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
-const registerCommands = require('./commands');
-const registerEvents = require('./events');
+// const registerCommands = require('./commands');
+// const registerEvents = require('./events');
+const { REST } = require('@discordjs/rest');
 const serviceAccount = require('./assets/firebase_creds.json');
 const irc_config = require('./assets/irc_config.json');
+const fs = require('node:fs');
 const {
     DISCORD_TOKEN,
+    DISCORD_CLIENT_ID,
+    TRIPSIT_GUILD_ID,
     IRC_SERVER,
     IRC_USERNAME,
     IRC_PASSWORD,
@@ -64,6 +69,51 @@ const client = new Client({
 // Initialize this for later
 client.invites = new Collection();
 
-Promise.all([registerCommands(client), registerEvents(client)])
-    .then(() => client.login(DISCORD_TOKEN))
-    .then(() => logger.info(`[${PREFIX}] Discord bot successfully started...`));
+// Promise.all([registerCommands(client), registerEvents(client)])
+//     .then(() => client.login(DISCORD_TOKEN))
+//     .then(() => logger.info(`[${PREFIX}] Discord bot successfully started...`));
+
+// Add global commands to guild commands
+// guild_command_names.push(...globl_command_names);
+// This adds all commands to the bot globally
+client.commands = new Collection();
+// This is used down below to sync guild commands on startup
+const guild_commands = [];
+const guild_files = fs.readdirSync('./src/commands/guild').filter(file => file.endsWith('.js'));
+for (const file of guild_files) {
+    const command = require(`../src/commands/guild/${file}`);
+    client.commands.set(command.data.name, command);
+    guild_commands.push(command.data.toJSON());
+    logger.debug(`[${PREFIX}] ${command.data.name} added to host guild`);
+}
+const global_commands = [];
+const global_files = fs.readdirSync('./src/commands/global').filter(file => file.endsWith('.js'));
+for (const file of global_files) {
+    const command = require(`../src/commands/global/${file}`);
+    global_commands.push(command.data.toJSON());
+    logger.debug(`[${PREFIX}] ${command.data.name} added GLOBALLY`);
+}
+
+const guild_rest = new REST({ version: '9' }).setToken(DISCORD_TOKEN);
+guild_rest.put(Routes.applicationGuildCommands(DISCORD_CLIENT_ID, TRIPSIT_GUILD_ID), { body: guild_commands })
+    .then(() => logger.debug(`[${PREFIX}] Successfully registered application guild_commands on ${TRIPSIT_GUILD_ID}!`))
+    .catch(console.error);
+const globl_rest = new REST({ version: '9' }).setToken(DISCORD_TOKEN);
+globl_rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), { body: global_commands })
+    .then(() => logger.debug(`[${PREFIX}] Successfully registered application globl_commands!`))
+    .catch(console.error);
+// Set up events
+const eventFiles = fs.readdirSync('./src/events').filter(file => file.endsWith('.js'));
+for (const file of eventFiles) {
+    const event = require(`../src/events/${file}`);
+    logger.debug(`[${PREFIX}] Adding event: ${event.name} to bot`);
+    if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args));
+    }
+    else {
+        client.on(event.name, (...args) => event.execute(...args, client));
+    }
+}
+logger.debug(`[${PREFIX}] Successfully registered application events!`);
+
+client.login(DISCORD_TOKEN);
