@@ -1,44 +1,29 @@
-// TODO: Migrate to env.js (that will use dotenv)
-if (process.env.NODE_ENV !== 'production') require('dotenv').config();
-// TODO: Look into not including this in the main process
+const fs = require('node:fs');
 const { Client, Collection, Intents } = require('discord.js');
-const PREFIX = require('path').parse(__filename).name;
+const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
+const PREFIX = require('path').parse(__filename).name;
 const logger = require('./utils/logger.js');
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
-// const registerCommands = require('./commands');
-// const registerEvents = require('./events');
-const { REST } = require('@discordjs/rest');
 const serviceAccount = require('./assets/firebase_creds.json');
+// const discordIRC = require('discord-irc').default;
 const irc_config = require('./assets/irc_config.json');
-const fs = require('node:fs');
-const {
-    DISCORD_TOKEN,
-    DISCORD_CLIENT_ID,
-    TRIPSIT_GUILD_ID,
-    IRC_SERVER,
-    IRC_USERNAME,
-    IRC_PASSWORD,
-    FIREBASE_PRIVATE_KEY_ID,
-    FIREBASE_PRIVATE_KEY,
-    FIREBASE_CLIENT_ID,
-    FIREBASE_CLIENT_EMAIL,
-} = require('../env');
-
-serviceAccount.private_key_id = FIREBASE_PRIVATE_KEY_ID;
-serviceAccount.private_key = FIREBASE_PRIVATE_KEY ? FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined;
-serviceAccount.client_email = FIREBASE_CLIENT_ID;
-serviceAccount.client_id = FIREBASE_CLIENT_EMAIL;
-
+if (process.env.NODE_ENV !== 'production') {require('dotenv').config();}
+serviceAccount.private_key_id = process.env.FIREBASE_PRIVATE_KEY_ID;
+serviceAccount.private_key = process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined;
+serviceAccount.client_email = process.env.FIREBASE_CLIENT_ID;
+serviceAccount.client_id = process.env.FIREBASE_CLIENT_EMAIL;
+const token = process.env.token;
+const clientId = process.env.clientid;
+const guildId = process.env.guildId;
 // IRC Connection, this takes a while so do it first
-irc_config[0].discordToken = DISCORD_TOKEN;
-irc_config[0].server = IRC_SERVER;
-irc_config[0].ircOptions.username = IRC_USERNAME;
-irc_config[0].ircOptions.password = IRC_PASSWORD;
+irc_config[0].discordToken = process.env.token;
+irc_config[0].server = process.env.IRC_SERVER;
+irc_config[0].ircOptions.username = process.env.IRC_USERNAME;
+irc_config[0].ircOptions.password = process.env.IRC_PASSWORD;
 irc_config[0].webhooks['960606558549594162'] = process.env['960606558549594162'];
 // discordIRC(irc_config);
-
 // Initialize firebase app
 if (serviceAccount.private_key_id) {
     initializeApp({
@@ -47,7 +32,6 @@ if (serviceAccount.private_key_id) {
     });
     global.db = getFirestore();
 }
-
 const client = new Client({
     intents: [
         Intents.FLAGS.GUILDS,
@@ -65,42 +49,88 @@ const client = new Client({
         'REACTION',
     ],
 });
-
 // Initialize this for later
 client.invites = new Collection();
+// Set up guild commands
+const guild_command_names = [
+    'botmod',
+    'birthday',
+    'button',
+    'clean_db',
+    'invite',
+    'issue',
+    'joke',
+    'karma',
+    'kipp',
+    'mod',
+    'motivate',
+    'report',
+    'remindme',
+    'test',
+    'time',
+    'tripsit',
+    'urban_define',
+    'topic',
+    'triptoys',
+];
 
-// Promise.all([registerCommands(client), registerEvents(client)])
-//     .then(() => client.login(DISCORD_TOKEN))
-//     .then(() => logger.info(`[${PREFIX}] Discord bot successfully started...`));
+// Set up global commands
+const globl_command_names = [
+    'about',
+    'birthday',
+    'breathe',
+    'bug',
+    'calc_benzo',
+    'calc_dxm',
+    'calc_ketamine',
+    'calc_psychedelics',
+    'combo',
+    'combochart',
+    'contact',
+    'ems',
+    'help',
+    'hydrate',
+    'idose',
+    'info',
+    'joke',
+    'kipp',
+    'motivate',
+    'pill_id',
+    'reagents',
+    'recovery',
+    'remindme',
+    'time',
+    'topic',
+    'triptoys',
+    'urban_define',
+];
 
 // Add global commands to guild commands
 // guild_command_names.push(...globl_command_names);
 // This adds all commands to the bot globally
 client.commands = new Collection();
 // This is used down below to sync guild commands on startup
+const globl_commands = [];
 const guild_commands = [];
-const guild_files = fs.readdirSync('./src/commands/guild').filter(file => file.endsWith('.js'));
-for (const file of guild_files) {
-    const command = require(`../src/commands/guild/${file}`);
+const commandFiles = fs.readdirSync('./src/commands').filter(file => file.endsWith('.js'));
+for (const file of commandFiles) {
+    const command = require(`../src/commands/${file}`);
     client.commands.set(command.data.name, command);
-    guild_commands.push(command.data.toJSON());
-    logger.debug(`[${PREFIX}] ${command.data.name} added to host guild`);
+    if (guild_command_names.includes(command.data.name)) {
+        logger.debug(`[${PREFIX}] ${command.data.name} added to host guild`);
+        guild_commands.push(command.data.toJSON());
+    }
+    if (globl_command_names.includes(command.data.name)) {
+        logger.debug(`[${PREFIX}] ${command.data.name} added GLOBALLY`);
+        globl_commands.push(command.data.toJSON());
+    }
 }
-const global_commands = [];
-const global_files = fs.readdirSync('./src/commands/global').filter(file => file.endsWith('.js'));
-for (const file of global_files) {
-    const command = require(`../src/commands/global/${file}`);
-    client.commands.set(command.data.name, command);
-    global_commands.push(command.data.toJSON());
-    logger.debug(`[${PREFIX}] ${command.data.name} added GLOBALLY`);
-}
-
-const guild_rest = new REST({ version: '9' }).setToken(DISCORD_TOKEN);
-guild_rest.put(Routes.applicationGuildCommands(DISCORD_CLIENT_ID, TRIPSIT_GUILD_ID), { body: guild_commands })
-    .then(() => logger.debug(`[${PREFIX}] Successfully registered application guild_commands on ${TRIPSIT_GUILD_ID}!`))
+const guild_rest = new REST({ version: '9' }).setToken(token);
+guild_rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: guild_commands })
+    .then(() => logger.debug(`[${PREFIX}] Successfully registered application guild_commands on ${guildId}!`))
     .catch(console.error);
-const globl_rest = new REST({ version: '9' }).setToken(DISCORD_TOKEN);
-globl_rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), { body: global_commands })
+const globl_rest = new REST({ version: '9' }).setToken(token);
+globl_rest.put(Routes.applicationCommands(clientId), { body: globl_commands })
     .then(() => logger.debug(`[${PREFIX}] Successfully registered application globl_commands!`))
     .catch(console.error);
 // Set up events
@@ -116,5 +146,4 @@ for (const file of eventFiles) {
     }
 }
 logger.debug(`[${PREFIX}] Successfully registered application events!`);
-
-client.login(DISCORD_TOKEN);
+client.login(token);
